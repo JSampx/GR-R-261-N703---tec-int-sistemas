@@ -28,10 +28,12 @@ class CidadeList(BaseModel):
 
 class ClimaData(BaseModel):
     """Dados climáticos de uma cidade."""
-    temperatura_min: float = Field(..., description="Temperatura mínima em °C")
-    temperatura_max: float = Field(..., description="Temperatura máxima em °C")
+    date: datetime = Field(..., description="Data e hora da previsão climática", alias="data")
     condicao: str = Field(..., description="Condição climática (ex: Parcialmente Nublado)")
-    unidades: UnidadesClima = Field(default_factory=UnidadesClima, description="Unidades de medida")
+    condicao_desc: str = Field(..., description="Condição climática (ex: Parcialmente Nublado)")
+    temperatura_min: float = Field(..., description="Temperatura mínima em °C", alias="min")
+    temperatura_max: float = Field(..., description="Temperatura máxima em °C", alias="max")
+    # unidades: UnidadesClima = Field(default_factory=UnidadesClima, description="Unidades de medida")
 
 
 # ============================================================================
@@ -56,13 +58,37 @@ class HealthResponse(BaseModel):
 # Resposta de Cidade com Clima
 # ============================================================================
 
-class CityClimateResponse(BaseModel):
+class CityClimate(BaseModel):
     """Modelo de resposta de informações de cidade com dados climáticos."""
     
-    nome: str = Field(..., description="Nome da cidade", alias="city_name")
+    cidade: str = Field(..., description="Nome da cidade", alias="nome")
     estado: str = Field(..., description="Sigla do estado (UF)", alias="state")
     clima: ClimaData = Field(..., description="Dados climáticos da cidade")
-    consultado_em: datetime = Field(..., description="Data e hora da consulta dos dados climáticos")
+    atualizado_em: datetime = Field(..., description="Data e hora da consulta dos dados climáticos")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "nome": "Fortaleza",
+                "estado": "CE",
+                "clima": {
+                    "temperatura_min": 24,
+                    "temperatura_max": 32,
+                    "condicao": "Parcialmente Nublado",
+                    "unidades": {
+                        "temperatura": "°C"
+                    }
+                },
+                "consultado_em": "2025-03-15T14:30:00Z"
+            }
+        }
+        populate_by_name = True  # Permite usar alias
+
+
+class CityClimateListResponse(BaseModel):
+    """Modelo de resposta de informações de cidade com dados climáticos."""
+    
+    cidades: list[CityClimate] = Field(..., description="Lista de informações de cidades com dados climáticos")
     
     class Config:
         json_schema_extra = {

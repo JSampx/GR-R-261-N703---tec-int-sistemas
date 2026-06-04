@@ -5,12 +5,14 @@ Define os 3 endpoints principais da aplicação:
   2. GET /api/v1/cidades/{sigla_uf} - Listagem de cidades por estado
   3. GET /api/v1/health - Health check
 """
-
+import asyncio
+from datetime import datetime, timezone
 import re
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Query
 from app.models.schemas import (
-    CityClimateResponse,
+    CityClimate,
+    CityClimateListResponse,
     CidadeInfo,
     CidadeList,
     CityListResponse,
@@ -100,8 +102,8 @@ def validate_state_code(state_code: str) -> str:
 
 @router.get(
     "/clima/{nome_cidade}",
-    # response_model=CityClimateResponse,
-    response_model=CidadeList,
+    # response_model=CityClimateListResponse,
+    # response_model=CidadeList,
     responses={
         200: {"description": "Informações da cidade com dados climáticos"},
         400: {"model": ErrorBadRequest, "description": "Nome de cidade inválido"},
@@ -111,7 +113,7 @@ def validate_state_code(state_code: str) -> str:
     summary="Obter informações de cidade com dados climáticos",
     description="Retorna informações geográficas e dados climáticos de uma cidade brasileira."
 )
-async def get_city_climate(nome_cidade: str) -> Dict[CityClimateResponse]:
+async def get_city_climate(nome_cidade: str) -> CityClimateListResponse:
     """
     Obtém informações climáticas de uma cidade brasileira.
     
@@ -124,7 +126,7 @@ async def get_city_climate(nome_cidade: str) -> Dict[CityClimateResponse]:
         nome_cidade: Nome da cidade (obrigatório)
     
     Returns:
-        CityClimateResponse: Informações da cidade com dados climáticos
+        CityClimateListResponse: Informações da cidade com dados climáticos
     
     Raises:
         HTTPException 400: Se o nome da cidade for inválido
@@ -151,11 +153,18 @@ async def get_city_climate(nome_cidade: str) -> Dict[CityClimateResponse]:
     try:
         # Chamar WeatherAggregator para obter dados completos
         # result = await WeatherAggregator.get_city_weather(validated_city)
-        result = await CPTECService.search_cities_by_name(validated_city)
-        # result = [{"nome":"Teresina","id":"245","estado":"PI","regiao": "Nordeste"}]
-        # print(result.type())
-        return CidadeList(data=[CidadeInfo(**city) for city in result])
-        # return CityClimateResponse(
+        # result = await CPTECService.search_cities_by_name(validated_city)
+        # cidades_list = []
+        # for cidade in result:
+        #      cidade =  await CPTECService.get_forecast(cidade["id"])
+        #      cidades_list.append(cidade)
+        # print(cidades_list)
+        # cidades = dict(enumerate(cidades_list))
+        # # result = [{"nome":"Teresina","id":"245","estado":"PI","regiao": "Nordeste"}]
+        # # print(result.type())
+        # # return CidadeList(data=[CidadeInfo(**city) for city in result])
+        # return CityClimateListResponse(**cidades)
+        # return cidades
         #  # Desempacotar o dicionário para os campos do modelo
         # # return CidadeInfo(*result 
         #     nome=result["city_name"],
@@ -163,6 +172,40 @@ async def get_city_climate(nome_cidade: str) -> Dict[CityClimateResponse]:
         #     clima=result["clima"],
         #     consultado_em=result["consultado_em"]
         # )
+        # 1. Fazemos a busca
+        cidades_encontradas = await CPTECService.search_cities_by_name(validated_city)
+
+        # 2. PROTEÇÃO: Se a lista for vazia, interrompemos a função IMEDIATAMENTE
+        if not cidades_encontradas:
+            # Isso vai pular direto para o bloco 'except ValueError' do 404
+            raise ValueError("Nenhuma cidade encontrada")
+
+        # 3. Como passamos da linha acima, temos 100% de certeza que a lista tem itens.
+        # O Python vai rodar tranquilamente.
+        tarefas_clima = [CPTECService.get_forecast(city["id"]) for city in cidades_encontradas]
+        # 4. Monta a lista estruturada combinando os dados geográficos com os climáticos
+        resultados_clima = await asyncio.gather(*tarefas_clima)
+        # 4. Monta a lista estruturada combinando os dados geográficos com os climáticos
+        lista_cidades_com_clima = []
+        
+        for cidade, dados_clima in zip(cidades_encontradas, resultados_clima):
+            # A API do CPTEC retorna o clima como uma lista de dias. 
+            # Pegamos o primeiro item (índice 0), que corresponde à previsão de hoje.
+            lista_previsao = dados_clima.get("clima", [])
+            previsao_hoje = lista_previsao[0] if lista_previsao else {}
+            
+            # Construímos o dicionário usando EXATAMENTE os aliases que o seu Pydantic pede
+            item_cidade = {
+                "nome": cidade.get("nome", "Desconhecido"), # Atende ao alias="nome"
+                "state": cidade.get("estado", "XX"),        # Atende ao alias="state"
+                "clima": previsao_hoje,                     # Passamos o dict bruto do CPTEC, o Pydantic filtra data, min, max, etc.
+                "atualizado_em": dados_clima.get("atualizado_em", datetime.now())
+            }
+            
+            lista_cidades_com_clima.append(item_cidade)
+            
+        # 5. Passa a lista completa para o modelo de resposta
+        return CityClimateListResponse(cidades=lista_cidades_com_clima)
     
     except ValueError as e:
         logger.warning(f"Cidade não encontrada", city=validated_city, error=str(e))
