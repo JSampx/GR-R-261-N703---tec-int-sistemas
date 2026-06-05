@@ -45,7 +45,7 @@ class HealthResponse(BaseModel):
     status: str = Field(..., description="Status da aplicação (healthy ou degraded)")
     message: str = Field(..., description="Mensagem descritiva")
     
-    class Config:
+    class ConfigDict:
         json_schema_extra = {
             "example": {
                 "status": "healthy",
@@ -66,7 +66,7 @@ class CityClimate(BaseModel):
     clima: ClimaData = Field(..., description="Dados climáticos da cidade")
     atualizado_em: datetime = Field(..., description="Data e hora da consulta dos dados climáticos")
     
-    class Config:
+    class ConfigDict:
         json_schema_extra = {
             "example": {
                 "nome": "Fortaleza",
@@ -90,7 +90,7 @@ class CityClimateListResponse(BaseModel):
     
     cidades: list[CityClimate] = Field(..., description="Lista de informações de cidades com dados climáticos")
     
-    class Config:
+    class ConfigDict:
         json_schema_extra = {
             "example": {
                 "nome": "Fortaleza",
@@ -120,7 +120,7 @@ class ErrorBadRequest(BaseModel):
     mensagem: str = Field(..., description="Mensagem descritiva do erro")
     nome_informado: str = Field(..., description="Nome da cidade que foi informado")
     
-    class Config:
+    class ConfigDict:
         json_schema_extra = {
             "example": {
                 "erro": True,
@@ -138,7 +138,7 @@ class ErrorNotFound(BaseModel):
     mensagem: str = Field(..., description="Mensagem descritiva do erro")
     nome_informado: str = Field(..., description="Nome da cidade procurada")
     
-    class Config:
+    class ConfigDict:
         json_schema_extra = {
             "example": {
                 "erro": True,
@@ -156,7 +156,7 @@ class ErrorServiceUnavailable(BaseModel):
     mensagem: str = Field(..., description="Mensagem descritiva do erro")
     servico: str = Field(..., description="Nome do serviço que falhou (ex: CPTEC, IBGE)")
     
-    class Config:
+    class ConfigDict:
         json_schema_extra = {
             "example": {
                 "erro": True,
@@ -174,7 +174,7 @@ class ErrorInvalidState(BaseModel):
     mensagem: str = Field(..., description="Mensagem descritiva do erro")
     sigla_informada: str = Field(..., description="Sigla do estado que foi informada")
     
-    class Config:
+    class ConfigDict:
         json_schema_extra = {
             "example": {
                 "erro": True,
@@ -194,7 +194,7 @@ class CityItem(BaseModel):
     name: str = Field(..., description="Nome da cidade")
     code: str = Field(..., description="Código IBGE da cidade")
     
-    class Config:
+    class ConfigDict:
         json_schema_extra = {
             "example": {
                 "name": "São Paulo",
@@ -215,7 +215,7 @@ class CityListResponse(BaseModel):
     limit: int = Field(..., description="Limite de cidades retornadas")
     cities: List[CityItem] = Field(..., description="Lista de cidades")
     
-    class Config:
+    class ConfigDict:
         json_schema_extra = {
             "example": {
                 "state": "SP",

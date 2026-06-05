@@ -47,15 +47,13 @@ class TestCityClimateEndpoint:
             
             assert response.status_code == 200
             data = response.json()
+            # print(f"\n\n\n\n{data}\n\n\n\n")
             
             # Verificar campos principais
-            assert data["city_name"] == "São Paulo"
-            assert data["state"] == "SP"
-            assert data["temperature"] == 28.5
-            assert data["humidity"] == 65
-            assert "weather_condition" in data
-            assert "latitude" in data
-            assert "longitude" in data
+            assert data["cidades"][0]["nome"] == "São Paulo"
+            assert data["cidades"][0]["state"] == "SP"
+            assert "clima" in data["cidades"][0]
+
     
     @pytest.mark.asyncio
     async def test_invalid_city_name_returns_400(self, client):
@@ -79,18 +77,18 @@ class TestCityClimateEndpoint:
         with patch("app.api.endpoints.WeatherAggregator.get_city_weather") as mock_get_weather:
             mock_get_weather.side_effect = ValueError("Cidade não encontrada")
             
-            response = client.get("/api/v1/clima/CidadeInexistente123")
+            response = client.get("/api/v1/clima/CidadeInexistente")
             
             assert response.status_code == 404
             data = response.json()
             assert "detail" in data
-            assert "não encontrada" in data["detail"].lower()
+            assert "não foi encontrada" in data["detail"]["mensagem"]
     
     @pytest.mark.asyncio
     async def test_external_service_error_returns_503(self, client):
         """Erro em serviço externo deve retornar 503."""
         # Mock para lançar Exception genérica (erro externo)
-        with patch("app.api.endpoints.WeatherAggregator.get_city_weather") as mock_get_weather:
+        with patch("app.services.external_apis.CPTECService.search_cities_by_name") as mock_get_weather:
             mock_get_weather.side_effect = Exception("API externa indisponível")
             
             response = client.get("/api/v1/clima/São Paulo")

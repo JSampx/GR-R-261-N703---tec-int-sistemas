@@ -87,18 +87,18 @@ app.include_router(api_router)
 # Endpoint de Health Check (Temporário)
 # ============================================================================
 
-@app.get("/api/v1/health", tags=["Health"])
-async def health_check() -> dict:
-    """
-    Verifica o status da saúde da aplicação.
+# @app.get("/api/v1/health", tags=["Health"])
+# async def health_check() -> dict:
+#     """
+#     Verifica o status da saúde da aplicação.
     
-    Returns:
-        dict: Status da aplicação
-    """
-    return {
-        "status": "healthy",
-        "message": "API está operacional"
-    }
+#     Returns:
+#         dict: Status da aplicação
+#     """
+#     return {
+#         "status": "healthy",
+#         "message": "API está operacional"
+#     }
 
 
 # ============================================================================
@@ -116,7 +116,7 @@ async def value_error_handler(request, exc):
 # Evento de Startup
 # ============================================================================
 
-@app.on_event("startup")
+# @app.on_event("startup")
 async def on_startup():
     """Executa configurações iniciais."""
     setup_logging()

@@ -5,7 +5,7 @@ Fornece clientes HTTP para consumo de dados de cidades e clima.
 
 import os
 from typing import List, Dict, Optional
-import httpx
+import httpx2 as httpx
 from app.utils.logger import get_logger
 from app.utils.cache import get_cache
 
